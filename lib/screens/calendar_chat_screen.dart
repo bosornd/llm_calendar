@@ -50,211 +50,58 @@ class _CalendarChatScreenState extends State<CalendarChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Calendar Assistant'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddEventDialog(context),
-            tooltip: 'Add event',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<ChatProvider>().startNewSession();
-            },
-            tooltip: 'Start new conversation',
-          ),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // Determine if we should use horizontal or vertical layout
-          final isWideScreen = constraints.maxWidth > 800;
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Determine if we should use horizontal or vertical layout
+            final isWideScreen = constraints.maxWidth > 800;
 
-          if (isWideScreen) {
-            // Horizontal layout: Calendar on left, Chat on right
-            return Row(
-              children: [
-                Expanded(flex: 1, child: _CalendarWidget()),
-                Container(
-                  width: 1,
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: _ChatWidget(
-                    messageController: _messageController,
-                    scrollController: _scrollController,
-                    onSendMessage: _sendMessage,
+            if (isWideScreen) {
+              // Horizontal layout: Calendar on left, Chat on right
+              return Row(
+                children: [
+                  Expanded(flex: 1, child: _CalendarWidget()),
+                  Container(
+                    width: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
                   ),
-                ),
-              ],
-            );
-          } else {
-            // Vertical layout: Calendar on top, Chat on bottom
-            return Column(
-              children: [
-                Expanded(flex: 1, child: _CalendarWidget()),
-                Container(
-                  height: 1,
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: _ChatWidget(
-                    messageController: _messageController,
-                    scrollController: _scrollController,
-                    onSendMessage: _sendMessage,
+                  Expanded(
+                    flex: 1,
+                    child: _ChatWidget(
+                      messageController: _messageController,
+                      scrollController: _scrollController,
+                      onSendMessage: _sendMessage,
+                    ),
                   ),
-                ),
-              ],
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  void _showAddEventDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    DateTime selectedDate =
-        context.read<CalendarProvider>().selectedDay ?? DateTime.now();
-    TimeOfDay startTime = TimeOfDay.now();
-    TimeOfDay endTime = TimeOfDay.now().replacing(
-      hour: TimeOfDay.now().hour + 1,
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Add Event'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Event Title',
-                        border: OutlineInputBorder(),
-                      ),
+                ],
+              );
+            } else {
+              // Vertical layout: Calendar on top, Chat on bottom
+              return Column(
+                children: [
+                  Expanded(flex: 3, child: _CalendarWidget()),
+                  Container(
+                    height: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.2),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: _ChatWidget(
+                      messageController: _messageController,
+                      scrollController: _scrollController,
+                      onSendMessage: _sendMessage,
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: descriptionController,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      title: const Text('Date'),
-                      subtitle: Text(
-                        DateFormat('MMM dd, yyyy').format(selectedDate),
-                      ),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () async {
-                        final pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime.now().subtract(
-                            const Duration(days: 365),
-                          ),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ),
-                        );
-                        if (pickedDate != null) {
-                          setState(() {
-                            selectedDate = pickedDate;
-                          });
-                        }
-                      },
-                    ),
-                    ListTile(
-                      title: const Text('Start Time'),
-                      subtitle: Text(startTime.format(context)),
-                      trailing: const Icon(Icons.access_time),
-                      onTap: () async {
-                        final pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: startTime,
-                        );
-                        if (pickedTime != null) {
-                          setState(() {
-                            startTime = pickedTime;
-                          });
-                        }
-                      },
-                    ),
-                    ListTile(
-                      title: const Text('End Time'),
-                      subtitle: Text(endTime.format(context)),
-                      trailing: const Icon(Icons.access_time),
-                      onTap: () async {
-                        final pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: endTime,
-                        );
-                        if (pickedTime != null) {
-                          setState(() {
-                            endTime = pickedTime;
-                          });
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (titleController.text.trim().isNotEmpty) {
-                      final event = CalendarEvent(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        title: titleController.text.trim(),
-                        description: descriptionController.text.trim(),
-                        startTime: DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          startTime.hour,
-                          startTime.minute,
-                        ),
-                        endTime: DateTime(
-                          selectedDate.year,
-                          selectedDate.month,
-                          selectedDate.day,
-                          endTime.hour,
-                          endTime.minute,
-                        ),
-                      );
-
-                      context.read<CalendarProvider>().addEvent(
-                        selectedDate,
-                        event,
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
-            );
+                  ),
+                ],
+              );
+            }
           },
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -266,60 +113,57 @@ class _CalendarWidget extends StatelessWidget {
       builder: (context, calendarProvider, child) {
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Calendar',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+            Container(
+              child: TableCalendar<CalendarEvent>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: calendarProvider.focusedDay,
+                selectedDayPredicate: (day) {
+                  return isSameDay(calendarProvider.selectedDay, day);
+                },
+                eventLoader: calendarProvider.getEventsForDay,
+                calendarFormat: calendarProvider.calendarFormat,
+                availableCalendarFormats: const {
+                  CalendarFormat.month: 'Month',
+                  CalendarFormat.week: 'Week',
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  calendarProvider.setSelectedDay(selectedDay);
+                  calendarProvider.setFocusedDay(focusedDay);
+                },
+                onFormatChanged: (format) {
+                  calendarProvider.setCalendarFormat(format);
+                },
+                onPageChanged: (focusedDay) {
+                  calendarProvider.setFocusedDay(focusedDay);
+                },
+                calendarStyle: CalendarStyle(
+                  outsideDaysVisible: false,
+                  markersMaxCount: 3,
+                  markerDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-            ),
-            TableCalendar<CalendarEvent>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: calendarProvider.focusedDay,
-              selectedDayPredicate: (day) {
-                return isSameDay(calendarProvider.selectedDay, day);
-              },
-              eventLoader: calendarProvider.getEventsForDay,
-              calendarFormat: calendarProvider.calendarFormat,
-              onDaySelected: (selectedDay, focusedDay) {
-                calendarProvider.setSelectedDay(selectedDay);
-                calendarProvider.setFocusedDay(focusedDay);
-              },
-              onFormatChanged: (format) {
-                calendarProvider.setCalendarFormat(format);
-              },
-              onPageChanged: (focusedDay) {
-                calendarProvider.setFocusedDay(focusedDay);
-              },
-              calendarStyle: CalendarStyle(
-                outsideDaysVisible: false,
-                markersMaxCount: 3,
-                markerDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              headerStyle: HeaderStyle(
-                formatButtonVisible: true,
-                titleCentered: true,
-                formatButtonShowsNext: false,
-                formatButtonDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                formatButtonTextStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
+                  formatButtonDecoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  formatButtonTextStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
                 ),
               ),
             ),
@@ -352,20 +196,10 @@ class _ChatWidget extends StatelessWidget {
     required this.scrollController,
     required this.onSendMessage,
   });
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            'AI Assistant',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
         Expanded(
           child: Consumer<ChatProvider>(
             builder: (context, chatProvider, child) {
@@ -628,17 +462,22 @@ class _EventsList extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       itemCount: events.length,
       itemBuilder: (context, index) {
         final event = events[index];
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 6),
           child: ListTile(
             dense: true,
+            visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 0,
+            ),
             leading: Container(
               width: 4,
-              height: 40,
+              height: 32,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(2),
@@ -646,33 +485,22 @@ class _EventsList extends StatelessWidget {
             ),
             title: Text(
               event.title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (event.description.isNotEmpty) ...[
-                  Text(
-                    event.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                ],
-                Text(
-                  '${DateFormat('HH:mm').format(event.startTime)} - ${DateFormat('HH:mm').format(event.endTime)}',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            subtitle: Text(
+              '${DateFormat('HH:mm').format(event.startTime)} - ${DateFormat('HH:mm').format(event.endTime)}',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+              ),
             ),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20),
+              icon: const Icon(Icons.delete_outline, size: 24),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
               onPressed: () {
                 context.read<CalendarProvider>().removeEvent(
                   selectedDate,
